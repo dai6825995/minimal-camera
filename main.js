@@ -4,6 +4,32 @@ const path = require("path");
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("disable-gpu-compositing");
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+}
+
+let mainWindow = null;
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.setAlwaysOnTop(false);
+  mainWindow.show();
+  mainWindow.setSkipTaskbar(false);
+  mainWindow.focus();
+}
+
+app.on("second-instance", () => {
+  showMainWindow();
+});
+
 function createWindow() {
   const area = screen.getPrimaryDisplay().workArea;
   const width = 360;
@@ -18,7 +44,8 @@ function createWindow() {
     height: height,
     minWidth: 360,
     minHeight: 202,
-    show: false,
+    show: true,
+    alwaysOnTop: false,
     backgroundColor: "#111111",
     frame: false,
     thickFrame: true,
@@ -32,7 +59,9 @@ function createWindow() {
     },
   });
 
+  mainWindow = win;
   win.setSkipTaskbar(false);
+  win.setAlwaysOnTop(false);
 
   const closeHit = 48;
   const WM_NCLBUTTONDOWN = 0x00a1;
@@ -117,24 +146,27 @@ function createWindow() {
 
   win.on("closed", () => {
     clearInterval(hoverTimer);
+    if (mainWindow === win) {
+      mainWindow = null;
+    }
   });
 
-  function showMainWindow() {
-    if (win.isDestroyed() || win.isVisible()) {
-      return;
-    }
-    win.setBounds({ x: x, y: y, width: width, height: height });
-    win.show();
-    win.setSkipTaskbar(false);
+  function showIfNeeded() {
+    showMainWindow();
   }
 
-  ipcMain.once("window-ready", showMainWindow);
-  setTimeout(showMainWindow, 8000);
+  ipcMain.once("window-ready", showIfNeeded);
+  win.once("ready-to-show", showIfNeeded);
+  setTimeout(showIfNeeded, 1200);
 
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 
 app.whenReady().then(() => {
+  if (!gotLock) {
+    return;
+  }
+
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === "media");
   });
