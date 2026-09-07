@@ -63,20 +63,45 @@ function createWindow() {
   win.setSkipTaskbar(false);
   win.setAlwaysOnTop(false);
 
-  const closeHit = 48;
+  const chromeSize = 48;
+  const closeHit = 40;
+  const flipHitWidth = 36;
   const WM_NCLBUTTONDOWN = 0x00a1;
   const WM_LBUTTONDOWN = 0x0201;
   const WM_LBUTTONUP = 0x0202;
   const WM_RESTORED = 0x8008;
 
-  function isPointerInCloseHit() {
+  function pointerInWindowTop() {
     const point = screen.getCursorScreenPoint();
     const bounds = win.getBounds();
+    if (
+      point.y < bounds.y ||
+      point.y >= bounds.y + chromeSize
+    ) {
+      return null;
+    }
+    return { point: point, bounds: bounds };
+  }
+
+  function isPointerInCloseHit() {
+    const pos = pointerInWindowTop();
+    if (!pos) {
+      return false;
+    }
     return (
-      point.x >= bounds.x + bounds.width - closeHit &&
-      point.x < bounds.x + bounds.width &&
-      point.y >= bounds.y &&
-      point.y < bounds.y + closeHit
+      pos.point.x >= pos.bounds.x + pos.bounds.width - closeHit &&
+      pos.point.x < pos.bounds.x + pos.bounds.width
+    );
+  }
+
+  function isPointerInFlipHit() {
+    const pos = pointerInWindowTop();
+    if (!pos) {
+      return false;
+    }
+    return (
+      pos.point.x >= pos.bounds.x + pos.bounds.width - closeHit - flipHitWidth &&
+      pos.point.x < pos.bounds.x + pos.bounds.width - closeHit
     );
   }
 
@@ -85,6 +110,16 @@ function createWindow() {
       return false;
     }
     win.close();
+    return true;
+  }
+
+  function flipFromCaptionClick() {
+    if (win.isDestroyed() || !isPointerInFlipHit()) {
+      return false;
+    }
+    if (!win.webContents.isDestroyed()) {
+      win.webContents.send("window-flip");
+    }
     return true;
   }
 
@@ -101,7 +136,9 @@ function createWindow() {
     } catch (_error) {
     }
 
-    win.hookWindowMessage(WM_NCLBUTTONDOWN, () => closeFromCaptionClick());
+    win.hookWindowMessage(WM_NCLBUTTONDOWN, () => {
+      return closeFromCaptionClick() || flipFromCaptionClick();
+    });
     win.hookWindowMessage(WM_LBUTTONDOWN, () => closeFromCaptionClick());
     win.hookWindowMessage(WM_LBUTTONUP, () => closeFromCaptionClick());
     win.hookWindowMessage(WM_RESTORED, () => {
@@ -132,15 +169,20 @@ function createWindow() {
       point.x < bounds.x + bounds.width &&
       point.y < bounds.y + bounds.height;
 
-    const closeHit = inside && isPointerInCloseHit();
-    const next = inside + ":" + closeHit;
+    const closeHitNow = inside && isPointerInCloseHit();
+    const flipHitNow = inside && isPointerInFlipHit();
+    const next = inside + ":" + closeHitNow + ":" + flipHitNow;
     if (next === hovering) {
       return;
     }
 
     hovering = next;
     if (!win.webContents.isDestroyed()) {
-      win.webContents.send("window-hover", { inside: inside, closeHit: closeHit });
+      win.webContents.send("window-hover", {
+        inside: inside,
+        closeHit: closeHitNow,
+        flipHit: flipHitNow,
+      });
     }
   }, 40);
 

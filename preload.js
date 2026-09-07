@@ -8,4 +8,9 @@ contextBridge.exposeInMainWorld("cameraApp", {
       callback(state);
     });
   },
+  onFlip: (callback) => {
+    ipcRenderer.on("window-flip", () => {
+      callback();
+    });
+  },
 });

@@ -2,6 +2,26 @@ const preview = document.getElementById("preview");
 const frame = document.getElementById("frame");
 const status = document.getElementById("status");
 const closeBtn = document.getElementById("closeBtn");
+const flipBtn = document.getElementById("flipBtn");
+
+let mirrored = true;
+let lastFlipAt = 0;
+
+function applyFlip() {
+  preview.classList.toggle("is-unmirrored", !mirrored);
+  flipBtn.classList.toggle("is-active", !mirrored);
+  flipBtn.setAttribute("aria-pressed", mirrored ? "false" : "true");
+}
+
+function toggleFlip() {
+  const now = Date.now();
+  if (now - lastFlipAt < 250) {
+    return;
+  }
+  lastFlipAt = now;
+  mirrored = !mirrored;
+  applyFlip();
+}
 
 function notifyReady() {
   if (window.cameraApp && typeof window.cameraApp.ready === "function") {
@@ -56,12 +76,24 @@ closeBtn.addEventListener("mousedown", (event) => {
   }
 }, true);
 
+flipBtn.addEventListener("mousedown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleFlip();
+}, true);
+
+if (window.cameraApp && typeof window.cameraApp.onFlip === "function") {
+  window.cameraApp.onFlip(toggleFlip);
+}
+
 if (window.cameraApp && typeof window.cameraApp.onHover === "function") {
   window.cameraApp.onHover((state) => {
     const hovering = typeof state === "object" ? Boolean(state.inside) : Boolean(state);
     const closeHit = typeof state === "object" ? Boolean(state.closeHit) : false;
+    const flipHit = typeof state === "object" ? Boolean(state.flipHit) : false;
     document.body.classList.toggle("is-hover", hovering);
     closeBtn.classList.toggle("is-active", closeHit);
+    flipBtn.classList.toggle("is-active", flipHit || !mirrored);
   });
 }
 
