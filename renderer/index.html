@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; media-src 'self' blob:;" />
+    <title>摄像头</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chrome">
+      <button class="close" id="closeBtn" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <main class="stage">
+      <div class="frame" id="frame">
+        <video id="preview" autoplay playsinline muted></video>
+        <p class="status" id="status">正在打开摄像头…</p>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "minimal-camera",
+  "version": "1.0.0",
+  "description": "只显示中间圆角摄像头画面的独立预览软件",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "node scripts/pack-win.js"
+  },
+  "devDependencies": {
+    "electron": "13.6.9",
+    "electron-packager": "15.5.2"
+  }
+}
